@@ -7,6 +7,10 @@ PUPPET_DIR=/etc/puppet/
 
 $(which git > /dev/null 2>&1)
 FOUND_GIT=$?
+$(which gcc > /dev/null 2>&1)
+FOUND_GCC=$?
+$(which ruby > /dev/null 2>&1)
+FOUND_RUBY=$?
 $(which librarian-puppet > /dev/null 2>&1)
 FOUND_LP=$?
 $(which apt-get > /dev/null 2>&1)
@@ -19,6 +23,9 @@ InstallLibrarianPuppetGem () {
   RUBY_VERSION=$(ruby -e 'print RUBY_VERSION')
   case "$RUBY_VERSION" in
     1.8.*)
+      # For ruby 1.8.x librarian-puppet needs to use 'highline' 1.6.x
+      # highline >= 1.7.0 requires ruby >= 1.9.3
+      gem install highline --version "~>1.6.0" > /dev/null 2>&1
       # Install the most recent 1.x.x version, but not 2.x.x which needs Ruby 1.9
       gem install librarian-puppet --version "~>1"
       ;;
@@ -30,13 +37,31 @@ InstallLibrarianPuppetGem () {
 }
 
 if [ "${FOUND_YUM}" -eq '0' ]; then
+  
+  echo 'Downloading metadata for the currently enabled yum repositories. Please be patient.'
+  yum -q -y makecache
 
   # Make sure Git is installed
   if [ "$FOUND_GIT" -ne '0' ]; then
     echo 'Attempting to install Git.'
-    yum -q -y makecache
+    
     yum -q -y install git
     echo 'Git installed.'
+  fi
+
+  # Make sure gcc is installed
+  if [ "$FOUND_GCC" -ne '0' ]; then
+    echo 'Attempting to install gcc.'
+    
+    yum -q -y install gcc
+    echo 'gcc installed.'
+  fi
+
+  # Make sure Ruby and RubyGems are installed
+  if [ "$FOUND_RUBY" -ne '0' ]; then
+    echo 'Attempting to install Ruby and RubyGems.'
+    yum -q -y install ruby-devel rubygems
+    echo 'Ruby and RubyGems installed.'
   fi
 
   # Make sure librarian-puppet is installed
